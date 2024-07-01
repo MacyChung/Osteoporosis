@@ -21,7 +21,7 @@ select1 <- base_data1 %>% dplyr::select(DIST_ID, AS3_SEX, AS3_AGE)
 select2 <- base_data2 %>% dplyr::select(DIST_ID, AS3_EXER)
 
 # estrogen
-select3 <- base_data3 %>% dplyr::select(DIST_ID, AS3_DRUGF, AS3_DRUGFFH, AS3_DRUGFFHAM, AS3_DRUGFFHFQ, AS3_DRUGFFHCU) #여성호르몬제
+select3 <- base_data3 %>% dplyr::select(DIST_ID, AS3_DRUGF, AS3_DRUGFFH, AS3_DRUGFFHAM, AS3_DRUGFFHFQ, AS3_DRUGFFHCU)
 
 select4 <- base_data4 %>% dplyr::select(DIST_ID, AS3_MENYN)
 select5 <- base_data5 %>% dplyr::select(DIST_ID, AS3_B05)
@@ -62,7 +62,7 @@ base_data_type$AS3_DRUGFFHAM <- as.factor(base_data_type$AS3_DRUGFFHAM)
 base_data_type$AS3_DRUGFFHCU <- as.factor(base_data_type$AS3_DRUGFFHCU)
 
 
-# variable type change for supplements
+# variable type change (for supplements)
 base_data_type$AS3_SUPPL <- as.factor(base_data_type$AS3_SUPPL)
 base_data_type$AS3_CA <- as.factor(base_data_type$AS3_CA)
 base_data_type$AS3_CAAM <- as.factor(base_data_type$AS3_CAAM)
@@ -82,13 +82,13 @@ sapply(base_data_type, class) # variable types after change
 
 
 
-# 여성호르몬제 관련 변수가 모두 결측인 대상자 제외
+# exculde rows where drug related variables are all null
 base_data_drug_del <- base_data_type %>% dplyr::filter(! (is.na(AS3_DRUGFFH)))
 dim (base_data_drug_del) # 3421
 
 
 
-# 골밀도 관련 변수가 모두 결측인 대상자 제외
+# exclude rows where bone density related variables are all null
 base_data_t_del <- base_data_drug_del %>% dplyr::filter(! (is.na(AS3_DT)))
 dim(base_data_t_del) # 2239
 
@@ -97,11 +97,11 @@ dim(base_data_t_del) # 2239
 # new variables
 ############
 
-## 골다공증 여부 변수 생성 기준
+## osteoporosis Y/N variable
 
 # osteoporosis: t-score <= -2.5
-# 골 감소증: t-score -2.5 ~ -1.0  
-# 정상군: t-score >= -1.0
+# osteopenia: t-score -2.5 ~ -1.0  
+# healthy: t-score >= -1.0
 
 
 ## based on the distal radius t-score
@@ -109,7 +109,7 @@ base_data_osteo <- base_data_t_del %>%
   dplyr::mutate(AS3_OSTEO_DT = ifelse(AS3_DT <= -2.5, 1,
                                 ifelse(AS3_DT > -2.5 & AS3_DT < -1.0, 2,
                                        ifelse(AS3_DT >= -1.0, 3, NA))))
-base_data_osteo$AS3_OSTEO_DT <- as.factor(base_data_osteo$AS3_OSTEO_DT) # 범주형
+base_data_osteo$AS3_OSTEO_DT <- as.factor(base_data_osteo$AS3_OSTEO_DT) # categorical variable
 
 
 
@@ -117,13 +117,13 @@ base_data_osteo$AS3_OSTEO_DT <- as.factor(base_data_osteo$AS3_OSTEO_DT) # 범주
 base_data_age <- base_data_osteo %>%
   dplyr::mutate(AS3_AGE_factor = ifelse(AS3_AGE < 55, 1,
                                  ifelse(AS3_AGE >= 55, 2, NA)))
-base_data_age$AS3_AGE_factor <- as.factor(base_data_age$AS3_AGE_factor) # 범주형
+base_data_age$AS3_AGE_factor <- as.factor(base_data_age$AS3_AGE_factor) # categorical variable
 
 
 
 # final dataset save / check
 base_data_final <- base_data_age
-save(base_data_final, file = "base_data_final.RData") # RData 저장(메모리 -> 하드)
+save(base_data_final, file = "base_data_final.RData") # save RData 
 str(base_data_final)
 head(base_data_final)
 
@@ -149,17 +149,17 @@ base_data_final$AS3_DRUGFFH <- factor(base_data_final$AS3_DRUGFFH,
 
 base_data_final$AS3_OSTEO_DT <- factor(base_data_final$AS3_OSTEO_DT, 
                                       levels = c("1", "2", "3"),
-                                      labels = c("골다공증", "골감소증", "정상군 "))
+                                      labels = c("osteoporosis", "osteopenia", "healthy "))
 
 base_data_final$AS3_AGE_factor <- factor(base_data_final$AS3_AGE_factor,
                                   levels = c("1", "2"),
-                                  labels = c("55세 이하", "55세 이상"))
+                                  labels = c("55-", "55+"))
 
 
 table.AS3_SUPPL <- descr::freq(base_data_final$AS3_SUPPL) # supplement  Y / N
 round(table.AS3_SUPPL, digits = 2)
 
-table.AS3_DRUGFFH <- descr::freq(base_data_final$AS3_DRUGFFH) # 여성호르몬제 Y/N 
+table.AS3_DRUGFFH <- descr::freq(base_data_final$AS3_DRUGFFH) # estrogen Y/N 
 round(table.AS3_DRUGFFH, digits = 2)
 
 table.AS3_DRUGFFHFQ <- descr::freq(base_data_final$AS3_DRUGFFHFQ)
@@ -196,7 +196,7 @@ chisq.test(base_data_final$AS3_OSTEO_DT, base_data_final$AS3_SUPPL)
 
 ##### linear regression analysis
 
-# AS3_AGE & AS3_DT (연령 / 골밀도)
+# AS3_AGE & AS3_DT (age / bone density)
 base_data_type$AS3_DRUGFFHFQ <- as.numeric(base_data_type$AS3_AGE)
 base_data_type$AS3_DT <- as.numeric(base_data_type$AS3_DT)
 
@@ -208,7 +208,7 @@ plot(AS3_DT ~ AS3_AGE, data = base_data_final)
 abline(coef(reg.simple))
 
 
-# AS3_DRUGFFHFQ & AS3_DT (여성호르몬제 복용 횟수 / 골밀도)
+# AS3_DRUGFFHFQ & AS3_DT (frequency of taking estrogen / bone density)
 base_data_type$AS3_DRUGFFHFQ <- as.numeric(base_data_type$AS3_DRUGFFHFQ)
 base_data_type$AS3_DT <- as.numeric(base_data_type$AS3_DT)
 
@@ -220,7 +220,7 @@ plot(AS3_DT ~ AS3_DRUGFFHFQ, data = base_data_final)
 abline(coef(reg.simple1))
 
 
-# AS3_SUPPL, AS3_DT (영양제 섭취 여부 / 골밀도)
+# AS3_SUPPL, AS3_DT (supplement Y/N / bone density)
 base_data_type$AS3_SUPPL <- as.numeric(base_data_type$AS3_SUPPL)
 base_data_type$AS3_DT <- as.numeric(base_data_type$AS3_DT)
 
@@ -232,7 +232,7 @@ abline(coef(reg.simple2))
 
 
 
-## AS3_B05, AS3_DT (칼슘 섭취량 / 골밀도)
+## AS3_B05, AS3_DT (calcium intake / bone density)
 base_data_type$AS3_B05 <- as.numeric(base_data_type$AS3_B05)
 base_data_type$AS3_DT <- as.numeric(base_data_type$AS3_DT)
 
